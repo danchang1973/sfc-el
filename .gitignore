@@ -55,3 +55,355 @@ __history/
 
 # Castalia statistics file
 *.stat
+
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, jpeg, ExtCtrls, DB, ADODB, ComCtrls;
+
+type
+  TForm1 = class(TForm)
+    Timer1: TTimer;
+    OpenDialog1: TOpenDialog;
+    ADOConnection1: TADOConnection;
+    ADOQuery1: TADOQuery;
+    Panel1: TPanel;
+    Panel2: TPanel;
+    Panel3: TPanel;
+    Image1: TImage;
+    Edit6: TEdit;
+    Edit1: TEdit;
+    Button1: TButton;
+    Button4: TButton;
+    Button2: TButton;
+    Button3: TButton;
+    Edit13: TEdit;
+    Label14: TLabel;
+    Edit3: TEdit;
+    Label4: TLabel;
+    Label3: TLabel;
+    Edit2: TEdit;
+    Label2: TLabel;
+    Edit4: TEdit;
+    Label1: TLabel;
+    Edit5: TEdit;
+    Edit9: TEdit;
+    Label7: TLabel;
+    Label8: TLabel;
+    Edit7: TEdit;
+    Edit8: TEdit;
+    Label5: TLabel;
+    Label6: TLabel;
+    Edit10: TEdit;
+    Edit11: TEdit;
+    Button5: TButton;
+    Image2: TImage;
+    ProgressBar1: TProgressBar;
+    procedure Button1Click(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Edit5KeyPress(Sender: TObject; var Key: Char);
+    procedure Button4Click(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.Button1Click(Sender: TObject);
+var
+  s,s1:string;
+  jpg: TJPEGImage;
+  bmp: TBitmap;
+  Ms: TmemoryStream;
+  i,j:integer;
+begin
+  i:=strtoint(edit7.text);
+  j:=strtoint(edit8.text);
+  if OpenDialog1.Execute=true then                                               //開 jpg
+    begin
+      s1:=OpenDialog1.FileName;
+      Edit9.text:=s1;
+      jpg:= TJPEGImage.Create;
+      Ms := TmemoryStream.Create;
+        try
+          jpg.LoadFromFile(s1);                                                  //轉成 MS
+          jpg.SaveToStream(Ms);
+          Ms.Position := 0;
+        finally
+          jpg.free
+        end;
+      Image1.Picture.LoadFromFile(s1);
+
+      Edit2.Text:=copy(s1,i,j);                                                  //找序號
+
+      ADOQuery1.close;
+      ADOQuery1.SQL.Clear;
+      ADOQuery1.SQL.add('select TG001 FROM SFCSNTG');
+      ADOQuery1.sql.add('where TG001=:TG001 ');
+      ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+      ADOQuery1.OPEN;
+
+      IF ADOQuery1.RecordCount=0 THEN
+        BEGIN
+          ADOQuery1.close;
+          ADOQuery1.SQL.Clear;
+          ADOQuery1.SQL.add('insert into SFCSNTG ( TG001, TG002, TG003, TG004, TG005, OK)');
+          ADOQuery1.sql.add('values ( :TG001, :TG002, :TG003, :TG004, :TG005, :OK) ');
+          ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+          ADOQuery1.Parameters.ParamByName('TG002').Value:= Edit3.Text;
+          ADOQuery1.Parameters.ParamByName('TG003').LoadFromStream(Ms, ftBlob);      //進入 SQL  Query
+          ADOQuery1.Parameters.ParamByName('TG004').Value:= Edit4.Text;
+          ADOQuery1.Parameters.ParamByName('TG005').Value:= Label1.caption;
+          ADOQuery1.Parameters.ParamByName('OK').Value:=1 ;
+          ADOQuery1.ExecSQL;                                                         //寫入 SQL
+        END
+      ELSE IF ADOQuery1.RecordCount>0 THEN
+        BEGIN
+          ADOQuery1.close;
+          ADOQuery1.SQL.Clear;
+          ADOQuery1.SQL.add('update SFCSNTG');
+//          ADOQuery1.sql.add('set OK=:s1 ');
+          ADOQuery1.sql.add('set  TG002=:TG002, TG003=:TG003, TG004=:TG004, TG005=:TG005, OK=:OK ');
+          ADOQuery1.sql.add('where TG001=:TG001 ');
+          ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+//          ADOQuery1.Parameters.ParamByName('s1').Value:=1 ;
+          ADOQuery1.Parameters.ParamByName('TG002').Value:= Edit3.Text;
+          ADOQuery1.Parameters.ParamByName('TG003').LoadFromStream(Ms, ftBlob);      //進入 SQL  Query
+          ADOQuery1.Parameters.ParamByName('TG004').Value:= Edit4.Text;
+          ADOQuery1.Parameters.ParamByName('TG005').Value:= Label1.caption;
+          ADOQuery1.Parameters.ParamByName('OK').Value:=1 ;
+          ADOQuery1.ExecSQL;
+        END;
+    end;
+end;
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+  Label1.caption:=datetimetostr(now);
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+var
+  s,s1,s2:string;
+  jpg: TJPEGImage;  
+  bmp: TBitmap;
+begin
+  s:='SN: '+edit2.Text+'  '+edit1.Text;
+  s1:=edit2.Text+'.bmp';
+  s2:=edit6.Text;
+//  Image1.Canvas.Font.Height:=20;
+  Image1.Canvas.Font.PixelsPerInch:=64;
+  Image1.Canvas.Font.Size:=14;
+  Image1.Canvas.Font.Name:='Microsoft Sans Serif';
+  Image1.Canvas.Font.Style:=[fsBold];
+//  Image1.Canvas.Font.color:=clwhite;
+//  Image1.Canvas.Brush.Style:=bsClear;
+  Image1.Canvas.Brush.color:=clwhite;
+//  Image1.Canvas.TextOut(10,1067,s);
+//  Image1.Canvas.TextOut(10,1047,s2);
+  Image1.Canvas.TextOut(10,1088,s);
+  Image1.Canvas.TextOut(10,1108,s2);
+  Image1.Picture.SaveToFile(s1);
+  Jpg :=TJpegImage.Create;
+  BMP :=TBitmap.Create;
+  BMP.LoadFromFile(s1);
+  Jpg.Assign(BMP);                                                                 //  BMP 轉 JPG
+  Jpg.CompressionQuality := 75;                                                    //  壓縮比 75
+  Jpg.Compress;                                                              
+  Jpg.SaveToFile(ChangeFileExt( s1, '.JPG'));
+  BMP.Free ;
+  Jpg.Free;
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+var
+  s,s1:string;
+  jpg: TJPEGImage;
+  bmp: TBitmap;
+begin
+  if OpenDialog1.Execute=true then
+    begin
+      s1:=OpenDialog1.FileName;
+      jpg:= TJPEGImage.Create;
+        try
+          jpg.LoadFromFile(s1);
+          bmp:= TBitmap.Create;
+            try
+              bmp.Assign( jpg );                                                    //jpg 轉 BMP
+              bmp.SaveTofile( ChangeFileExt( s1, '.BMP' ));
+            finally
+              bmp.free
+            end;
+        finally
+          jpg.free
+        end;
+      Image1.Picture.bitmap.LoadFromFile(ChangeFileExt( s1, '.BMP' ));
+    end;
+end;
+
+procedure TForm1.Edit5KeyPress(Sender: TObject; var Key: Char);
+begin
+ if key=#13 then
+  begin
+    if length(edit5.text)=6 then
+      begin
+        edit4.Text:=edit5.Text;           //工號
+      end;
+    if (length(edit5.text)=17)then
+      begin
+//        IF COPY(edit5.text,0,2)='KS' THEN
+//          BEGIN
+            edit2.Text:=edit5.Text;       //LPT S/N
+//          END;
+//        IF COPY(edit5.text,0,3)='WSP' THEN
+//          BEGIN
+//            edit3.Text:=edit5.Text;       //WSP S/N
+//          END;
+      end;
+    if length(edit5.text)=strtoint(Edit13.text) then
+      begin
+        edit3.Text:=edit5.Text;          //custom S/N
+      end;
+    edit5.Text:='';
+    edit5.SetFocus;
+  end;
+end;
+
+procedure TForm1.Button4Click(Sender: TObject);
+var
+  s,s1:string;
+  jpg: TJPEGImage;
+  bmp: TBitmap;
+  Ms: TmemoryStream;
+  blobF : TBlobField;
+begin
+
+  ADOQuery1.close;
+  ADOQuery1.SQL.Clear;
+  ADOQuery1.SQL.add('select TG001, TG002, TG003, TG004, TG005, OK');
+  ADOQuery1.sql.add('from SFCSNTG');
+  ADOQuery1.sql.add('where  TG001=:TG001');
+  ADOQuery1.sql.add('and OK=:OK');
+  ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+  ADOQuery1.Parameters.ParamByName('OK').Value:=1;
+  ADOQuery1.OPEN;
+
+  if  ADOQuery1.recordcount>0 then
+    begin
+      MS:= TMemoryStream.Create;
+      TBlobField(ADOQuery1.FieldByName('TG003')).SaveToStream(MS);
+      MS.Position:=0;
+      jpg := TJPEGImage.Create;
+      jpg.LoadFromStream(ms);
+      Image1.Picture.Assign(jpg);
+    end;
+end;
+
+procedure TForm1.Button5Click(Sender: TObject);                                    //連續上傳 SQL  396筆/80秒  186/30秒  6筆/每秒
+var
+  s,s1:string;
+  jpg: TJPEGImage;
+  bmp: TBitmap;
+  Ms: TmemoryStream;
+  i,j,k:integer;
+begin
+  i:=strtoint(edit7.text);
+  j:=strtoint(edit8.text);
+  ProgressBar1.Max:=strtoint(edit11.text);
+  for k:= strtoint(edit10.text) to strtoint(edit11.text) do
+    begin
+      ProgressBar1.Position:=k;
+      if k>999 then s1:=Edit9.text+inttostr(k)+'.jpg';                            //1000-9999
+      if (k>99) and (k<1000) then s1:=Edit9.text+'0'+inttostr(k)+'.jpg';          //0100-0999
+      if (k>9) and (k<100) then s1:=Edit9.text+'00'+inttostr(k)+'.jpg';           //0010-0099
+      if k<9 then s1:=Edit9.text+'000'+inttostr(k)+'.jpg';                        //0001-0009
+      if FileExists(s1) then
+        begin
+          jpg:= TJPEGImage.Create;
+          Ms := TmemoryStream.Create;
+          try
+            jpg.LoadFromFile(s1);                                                //轉成 MS
+            jpg.SaveToStream(Ms);
+            Ms.Position := 0;
+          finally
+            jpg.free
+          end;
+          Edit2.Text:=copy(s1,i,j);                                              //找序號
+
+          ADOQuery1.close;
+          ADOQuery1.SQL.Clear;
+          ADOQuery1.SQL.add('select TG001 FROM SFCSNTG');
+          ADOQuery1.sql.add('where TG001=:TG001 ');
+          ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+          ADOQuery1.OPEN;
+
+          IF ADOQuery1.RecordCount=0 THEN
+            BEGIN
+              ADOQuery1.close;
+              ADOQuery1.SQL.Clear;
+              ADOQuery1.SQL.add('insert into SFCSNTG ( TG001, TG002, TG003, TG004, TG005, OK)');
+              ADOQuery1.sql.add('values ( :TG001, :TG002, :TG003, :TG004, :TG005, :OK) ');
+              ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+              ADOQuery1.Parameters.ParamByName('TG002').Value:= Edit3.Text;
+              ADOQuery1.Parameters.ParamByName('TG003').LoadFromStream(Ms, ftBlob);      //進入 SQL  Query
+              ADOQuery1.Parameters.ParamByName('TG004').Value:= Edit4.Text;
+              ADOQuery1.Parameters.ParamByName('TG005').Value:= Label1.caption;
+              ADOQuery1.Parameters.ParamByName('OK').Value:=1 ;
+              ADOQuery1.ExecSQL;                                                         //寫入 SQL
+            END
+          ELSE IF ADOQuery1.RecordCount>0 THEN
+            BEGIN
+              ADOQuery1.close;
+              ADOQuery1.SQL.Clear;
+              ADOQuery1.SQL.add('update SFCSNTG');                                      //更新資訊
+              ADOQuery1.sql.add('set  TG002=:TG002, TG003=:TG003, TG004=:TG004, TG005=:TG005, OK=:OK ');
+              ADOQuery1.sql.add('where TG001=:TG001 ');
+              ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+              ADOQuery1.Parameters.ParamByName('TG002').Value:= Edit3.Text;
+              ADOQuery1.Parameters.ParamByName('TG003').LoadFromStream(Ms, ftBlob);      //進入 SQL  Query
+              ADOQuery1.Parameters.ParamByName('TG004').Value:= Edit4.Text;
+              ADOQuery1.Parameters.ParamByName('TG005').Value:= Label1.caption;
+              ADOQuery1.Parameters.ParamByName('OK').Value:=1 ;
+              ADOQuery1.ExecSQL;
+            END;
+
+{
+          ADOQuery1.close;
+          ADOQuery1.SQL.Clear;
+          ADOQuery1.SQL.add('update SFCSNTG');
+          ADOQuery1.sql.add('set OK=:s1 ');
+          ADOQuery1.sql.add('where TG001=:TG001 ');
+          ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+          ADOQuery1.Parameters.ParamByName('s1').Value:=0 ;
+          ADOQuery1.ExecSQL;
+
+          ADOQuery1.close;
+          ADOQuery1.SQL.Clear;                                                         //寫入 SQL
+          ADOQuery1.SQL.add('insert into SFCSNTG ( TG001, TG002, TG003, TG004, TG005, OK)');
+          ADOQuery1.sql.add('values ( :TG001, :TG002, :TG003, :TG004, :TG005, :OK) ');
+          ADOQuery1.Parameters.ParamByName('TG001').Value:= Edit2.Text;
+          ADOQuery1.Parameters.ParamByName('TG002').Value:= Edit3.Text;
+          ADOQuery1.Parameters.ParamByName('TG003').LoadFromStream(Ms, ftBlob);      //進入 SQL  Query
+          ADOQuery1.Parameters.ParamByName('TG004').Value:= Edit4.Text;
+          ADOQuery1.Parameters.ParamByName('TG005').Value:= Label1.caption;
+          ADOQuery1.Parameters.ParamByName('OK').Value:=1 ;
+          ADOQuery1.ExecSQL;
+}       END;
+    end;
+  ProgressBar1.Position:=0;
+end;
+
+end.
